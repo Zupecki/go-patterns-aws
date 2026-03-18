@@ -164,15 +164,17 @@ func run(ctx context.Context) error {
 
 		for i := 1; i <= numJobs; i++ {
 			var job Job
+			uuid := uuid.New()
+			fmt.Printf("Job Created with id=%s\n", uuid.String())
 
 			if i%2 == 0 {
 				job = JobProcessInt{
-					ID:     uuid.New(),
+					ID:     uuid,
 					IntVal: i,
 				}
 			} else {
 				job = JobProcessString{
-					ID:     uuid.New(),
+					ID:     uuid,
 					StrVal: fmt.Sprintf("i=%d", i),
 				}
 			}
