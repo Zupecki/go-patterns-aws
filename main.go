@@ -89,8 +89,8 @@ func (s PrintStore) StoreResult(ctx context.Context, r Result) error {
 // add NoSQL store later
 
 func run(ctx context.Context) error {
-	jobChan := make(chan<- Job)
-	resultsChan := make(<-chan Result)
+	jobChan := make(chan Job)
+	resultsChan := make(chan Result)
 
 	return nil
 }
