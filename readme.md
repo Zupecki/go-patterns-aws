@@ -15,7 +15,7 @@ Build a small Go application step by step to learn and internalize:
 
 ---
 
-# Phase 0 — Project setup
+# Phase 0 — Project setup [x]
 
 Create the basic project structure:
 
@@ -29,7 +29,7 @@ Create the basic project structure:
 
 ---
 
-# Phase 1 — Local in-process worker pool
+# Phase 1 — Local in-process worker pool [x]
 
 Build the core concurrency model without AWS:
 
@@ -45,7 +45,7 @@ Build the core concurrency model without AWS:
 
 ---
 
-# Phase 2 — Add cancellation and fail-fast behavior
+# Phase 2 — Add cancellation and fail-fast behavior [x]
 
 Enhance the worker pool with:
 
