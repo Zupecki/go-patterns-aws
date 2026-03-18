@@ -33,7 +33,7 @@ type JobProcessString struct {
 
 type JobProcessInt struct {
 	ID     uuid.UUID
-	StrVal string
+	IntVal int
 }
 
 // results
