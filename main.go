@@ -100,14 +100,15 @@ func (s PrintStore) StoreResult(ctx context.Context, r Result) error {
 // add NoSQL store later
 
 // worker
-func worker(ctx context.Context, jobChan <-chan Job, resultsChan chan<- Result) error {
+func worker(ctx context.Context, jobChan <-chan Job, resultsChan chan<- Result, ID int) error {
 	for {
 		select {
 		case <-ctx.Done():
+			fmt.Printf("Worker %d exiting due to early cancel", ID)
 			return ctx.Err()
 		case job, ok := <-jobChan:
 			if !ok {
-				return fmt.Errorf("job chan closed; no more jobs")
+				return nil // job channel closed; no more jobs
 			}
 
 			result, err := job.Process(ctx)
@@ -118,6 +119,7 @@ func worker(ctx context.Context, jobChan <-chan Job, resultsChan chan<- Result) 
 			select {
 			case resultsChan <- result:
 			case <-ctx.Done():
+				fmt.Printf("Worker %d exiting due to early cancel", ID)
 				return ctx.Err()
 			}
 		}
@@ -136,8 +138,9 @@ func run(ctx context.Context) error {
 
 	// spawn workers with early cancel via errorgroup and context
 	for i := 1; i <= numWorkers; i++ {
+		i := i
 		errorGroup.Go(func() error {
-			return worker(ctx, jobChan, resultsChan)
+			return worker(ctx, jobChan, resultsChan, i)
 		})
 	}
 
@@ -186,6 +189,6 @@ func run(ctx context.Context) error {
 		}
 	}
 
-	// this chan will only ever be nil or error from a failed worker
+	// errChan will only ever be nil or the sync.Once error from errorgroup
 	return <-errChan
 }
