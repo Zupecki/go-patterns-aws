@@ -65,7 +65,7 @@ type ResultJobStr struct {
 
 func (r ResultJobStr) ResultType() ResultType { return ResultTypeStr }
 func (r ResultJobStr) String() string {
-	return fmt.Sprintf("id=%s resulttype=%s value=%s", &r.ID.String(), r.ResultType(), r.StrVal)
+	return fmt.Sprintf("id=%s resulttype=%s value=%s", r.ID.String(), r.ResultType(), r.StrVal)
 }
 
 // store
