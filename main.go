@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/Zupecki/go-patterns-aws/internal/jobs"
+	"github.com/Zupecki/go-patterns-aws/internal/store"
 	"github.com/Zupecki/go-patterns-aws/internal/worker"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
@@ -25,16 +26,6 @@ func main() {
 }
 
 // store
-type ResultStore interface {
-	StoreResult(ctx context.Context, result jobs.Result) error
-}
-
-type PrintStore struct{}
-
-func (s PrintStore) StoreResult(ctx context.Context, r jobs.Result) error {
-	fmt.Printf("Job Result: %v\n", r)
-	return nil
-}
 
 // add NoSQL store later
 func run(ctx context.Context) error {
@@ -95,7 +86,7 @@ func run(ctx context.Context) error {
 	}()
 
 	// results consumer
-	store := PrintStore{}
+	store := store.PrintStore{}
 	for result := range resultsChan {
 		err := store.StoreResult(ctx, result)
 		if err != nil {
