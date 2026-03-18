@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Zupecki/go-patterns-aws/jobs"
-	"github.com/Zupecki/go-patterns-aws/worker"
+	"github.com/Zupecki/go-patterns-aws/internal/jobs"
+	"github.com/Zupecki/go-patterns-aws/internal/worker"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 )
