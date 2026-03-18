@@ -31,9 +31,19 @@ type JobProcessString struct {
 	StrVal string
 }
 
+func (j JobProcessString) Process(ctx context.Context) (Result, error) {
+	fmt.Println("PROCESS STRING JOB")
+	return nil, nil
+}
+
 type JobProcessInt struct {
 	ID     uuid.UUID
 	IntVal int
+}
+
+func (j JobProcessInt) Process(ctx context.Context) (Result, error) {
+	fmt.Println("PROCESS INT JOB")
+	return nil, nil
 }
 
 // results
@@ -58,13 +68,13 @@ func (r ResultJobInt) String() string {
 	return fmt.Sprintf("id=%s resulttype=%s value=%d", r.ID.String(), r.ResultType(), r.IntVal)
 }
 
-type ResultJobStr struct {
+type ResultJobString struct {
 	ID     uuid.UUID
 	StrVal string
 }
 
-func (r ResultJobStr) ResultType() ResultType { return ResultTypeStr }
-func (r ResultJobStr) String() string {
+func (r ResultJobString) ResultType() ResultType { return ResultTypeStr }
+func (r ResultJobString) String() string {
 	return fmt.Sprintf("id=%s resulttype=%s value=%s", r.ID.String(), r.ResultType(), r.StrVal)
 }
 
