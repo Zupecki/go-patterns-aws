@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -20,25 +21,60 @@ func main() {
 	}
 }
 
-type JobType string
+// jobs
+type Job interface {
+	Process(ctx context.Context) (Result, error)
+}
 
-const (
-	JobTypeInt JobType = "int"
-	JobTypeStr JobType = "string"
-)
-
-type Job struct {
+type JobProcessString struct {
 	ID     uuid.UUID
-	Type   JobType
-	IntVal int
 	StrVal string
 }
 
-type Result struct {
-	Type   string // "int" or "string"
-	IntVal int
+type JobProcessInt struct {
+	ID     uuid.UUID
 	StrVal string
 }
+
+// results
+type Result interface {
+	ResultType() string
+}
+
+type ResultJobInt struct {
+	ID     uuid.UUID
+	IntVal int
+}
+
+func (r ResultJobInt) ResultType() string { return "int" }
+
+type ResultJobStr struct {
+	ID     uuid.UUID
+	StrVal string
+}
+
+func (r ResultJobStr) ResultType() string { return "string" }
+
+// store
+type ResultStore interface {
+	StoreResult(ctx context.Context, result Result) error
+}
+
+type PrintStore struct{}
+
+func (s PrintStore) StoreResult(ctx context.Context, r Result) error {
+	switch v := r.(type) {
+	case ResultJobInt:
+		fmt.Printf("INT RESULT: id=%s value=%d\n", v.ID, v.IntVal)
+	case ResultJobStr:
+		fmt.Printf("STRING RESULT: id=%s value=%q\n", v.ID, v.StrVal)
+	default:
+		return fmt.Errorf("unknown result type")
+	}
+	return nil
+}
+
+// add NoSQL store later
 
 func run(ctx context.Context) error {
 	jobChan := make(chan<- Job)
