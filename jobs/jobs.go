@@ -11,8 +11,8 @@ import (
 type ResultType string
 
 const (
-	ResultTypeInt ResultType = "int"
-	ResultTypeStr ResultType = "string"
+	ResultTypeInt    ResultType = "int"
+	ResultTypeString ResultType = "string"
 )
 
 type Result interface {
@@ -34,7 +34,7 @@ type ResultJobString struct {
 	StrVal string
 }
 
-func (r ResultJobString) ResultType() ResultType { return ResultTypeStr }
+func (r ResultJobString) ResultType() ResultType { return ResultTypeString }
 func (r ResultJobString) String() string {
 	return fmt.Sprintf("id=%s resulttype=%s value=%s", r.ID.String(), r.ResultType(), r.StrVal)
 }
