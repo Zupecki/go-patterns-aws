@@ -128,6 +128,7 @@ func worker(ctx context.Context, jobChan <-chan Job, resultsChan chan<- Result) 
 func run(ctx context.Context) error {
 	jobChan := make(chan Job)
 	resultsChan := make(chan Result)
+	errChan := make(chan error, 1) // buffer with 1, so worker
 	numWorkers := 5
 	numJobs := 10
 
@@ -145,7 +146,7 @@ func run(ctx context.Context) error {
 		defer close(resultsChan)
 
 		err := errorGroup.Wait()
-		fmt.Println(err)
+		errChan <- err
 	}()
 
 	// job producer
@@ -177,6 +178,14 @@ func run(ctx context.Context) error {
 	}()
 
 	// results consumer
+	store := PrintStore{}
+	for result := range resultsChan {
+		err := store.StoreResult(ctx, result)
+		if err != nil {
+			return err
+		}
+	}
 
-	return nil
+	// this chan will only ever be nil or error from a failed worker
+	return <-errChan
 }
