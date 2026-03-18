@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
@@ -33,10 +34,17 @@ type JobProcessString struct {
 }
 
 func (j JobProcessString) Process(ctx context.Context) (Result, error) {
+	select {
+	case <-time.After(5 * time.Second):
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
 	result := ResultJobString{
 		ID:     j.ID,
 		StrVal: fmt.Sprintf("String processed: %s", j.StrVal),
 	}
+
 	return result, nil
 }
 
@@ -46,10 +54,17 @@ type JobProcessInt struct {
 }
 
 func (j JobProcessInt) Process(ctx context.Context) (Result, error) {
+	select {
+	case <-time.After(5 * time.Second):
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
 	result := ResultJobInt{
 		ID:     j.ID,
 		IntVal: j.IntVal * 2,
 	}
+
 	return result, nil
 }
 
@@ -93,13 +108,7 @@ type ResultStore interface {
 type PrintStore struct{}
 
 func (s PrintStore) StoreResult(ctx context.Context, r Result) error {
-	switch r.ResultType() {
-	case ResultTypeInt, ResultTypeStr:
-		fmt.Printf("Job Result: %v\n", r)
-	default:
-		return fmt.Errorf("unknown result type")
-	}
-
+	fmt.Printf("Job Result: %v\n", r)
 	return nil
 }
 
@@ -110,12 +119,15 @@ func worker(ctx context.Context, jobChan <-chan Job, resultsChan chan<- Result, 
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Printf("Worker %d exiting due to early cancel", ID)
+			fmt.Printf("Worker %d exiting due to early cancel\n", ID)
 			return ctx.Err()
 		case job, ok := <-jobChan:
 			if !ok {
-				return nil // job channel closed; no more jobs
+				fmt.Printf("Worker %d exiting: no more jobs\n", ID)
+				return nil
 			}
+
+			fmt.Printf("Worker %d picked up job\n", ID)
 
 			result, err := job.Process(ctx)
 			if err != nil {
@@ -125,9 +137,11 @@ func worker(ctx context.Context, jobChan <-chan Job, resultsChan chan<- Result, 
 			select {
 			case resultsChan <- result:
 			case <-ctx.Done():
-				fmt.Printf("Worker %d exiting due to early cancel", ID)
+				fmt.Printf("Worker %d exiting due to early cancel\n", ID)
 				return ctx.Err()
 			}
+
+			fmt.Printf("Worker %d finished job\n", ID)
 		}
 	}
 
@@ -153,6 +167,7 @@ func run(ctx context.Context) error {
 	// coordination routine, ensure results channel closed when jobs done (error group wait group)
 	go func() {
 		defer close(resultsChan)
+		defer close(errChan)
 
 		err := errorGroup.Wait()
 		errChan <- err
@@ -164,16 +179,16 @@ func run(ctx context.Context) error {
 
 		for i := 1; i <= numJobs; i++ {
 			var job Job
-			uuid := uuid.New()
+			jobID := uuid.New()
 
 			if i%2 == 0 {
 				job = JobProcessInt{
-					ID:     uuid,
+					ID:     jobID,
 					IntVal: i,
 				}
 			} else {
 				job = JobProcessString{
-					ID:     uuid,
+					ID:     jobID,
 					StrVal: fmt.Sprintf("i=%d", i),
 				}
 			}
