@@ -37,8 +37,15 @@ type JobProcessInt struct {
 }
 
 // results
+type ResultType string
+
+const (
+	ResultTypeInt ResultType = "int"
+	ResultTypeStr ResultType = "string"
+)
+
 type Result interface {
-	ResultType() string
+	ResultType() ResultType
 }
 
 type ResultJobInt struct {
@@ -46,14 +53,20 @@ type ResultJobInt struct {
 	IntVal int
 }
 
-func (r ResultJobInt) ResultType() string { return "int" }
+func (r ResultJobInt) ResultType() ResultType { return ResultTypeInt }
+func (r ResultJobInt) String() string {
+	return fmt.Sprintf("id=%s resulttype=%s value=%d", r.ID.String(), r.ResultType(), r.IntVal)
+}
 
 type ResultJobStr struct {
 	ID     uuid.UUID
 	StrVal string
 }
 
-func (r ResultJobStr) ResultType() string { return "string" }
+func (r ResultJobStr) ResultType() ResultType { return ResultTypeStr }
+func (r ResultJobStr) String() string {
+	return fmt.Sprintf("id=%s resulttype=%s value=%s", &r.ID.String(), r.ResultType(), r.StrVal)
+}
 
 // store
 type ResultStore interface {
@@ -63,14 +76,13 @@ type ResultStore interface {
 type PrintStore struct{}
 
 func (s PrintStore) StoreResult(ctx context.Context, r Result) error {
-	switch v := r.(type) {
-	case ResultJobInt:
-		fmt.Printf("INT RESULT: id=%s value=%d\n", v.ID, v.IntVal)
-	case ResultJobStr:
-		fmt.Printf("STRING RESULT: id=%s value=%q\n", v.ID, v.StrVal)
+	switch r.ResultType() {
+	case ResultTypeInt, ResultTypeStr:
+		fmt.Printf("Job Result: %s\n", r)
 	default:
 		return fmt.Errorf("unknown result type")
 	}
+
 	return nil
 }
 
