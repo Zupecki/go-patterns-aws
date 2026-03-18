@@ -25,13 +25,10 @@ func main() {
 	}
 }
 
-// store
-
-// add NoSQL store later
 func run(ctx context.Context) error {
 	jobChan := make(chan jobs.Job)
 	resultsChan := make(chan jobs.Result)
-	errChan := make(chan error, 1) // buffer with 1, so worker
+	errChan := make(chan error, 1) // buffer 1 so cleanup goroutine can send final error without blocking
 	numWorkers := 5
 	numJobs := 10
 
@@ -46,47 +43,32 @@ func run(ctx context.Context) error {
 	}
 
 	// coordination routine, ensure results channel closed when jobs done (error group wait group)
-	go func() {
-		defer close(resultsChan)
-		defer close(errChan)
-
-		err := errorGroup.Wait()
-		errChan <- err
-	}()
+	go resultsCleanup(errorGroup, resultsChan, errChan)
 
 	// job producer
-	go func() {
-		defer close(jobChan)
-
-		for i := 1; i <= numJobs; i++ {
-			var job jobs.Job
-			jobID := uuid.New()
-
-			if i%2 == 0 {
-				job = jobs.JobProcessInt{
-					ID:     jobID,
-					IntVal: i,
-				}
-			} else {
-				job = jobs.JobProcessString{
-					ID:     jobID,
-					StrVal: fmt.Sprintf("i=%d", i),
-				}
-			}
-
-			fmt.Printf("Job Created: %+v\n", job)
-
-			// cancel aware job loading
-			select {
-			case jobChan <- job:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
+	go produceTestJobs(ctx, jobChan, numJobs)
 
 	// results consumer
-	store := store.PrintStore{}
+	// may want to cancel context if consumer issues, drain workers etc
+	resultStore := store.PrintStore{}
+	err := resultsConsumer(ctx, resultStore, resultsChan)
+	if err != nil {
+		return err
+	}
+
+	// errChan will only ever be nil or the sync.Once error from errorgroup
+	return <-errChan
+}
+
+func resultsCleanup(errorGroup *errgroup.Group, resultsChan chan<- jobs.Result, errChan chan<- error) {
+	defer close(resultsChan)
+	defer close(errChan)
+
+	err := errorGroup.Wait()
+	errChan <- err
+}
+
+func resultsConsumer(ctx context.Context, store store.ResultStore, resultsChan <-chan jobs.Result) error {
 	for result := range resultsChan {
 		err := store.StoreResult(ctx, result)
 		if err != nil {
@@ -94,6 +76,35 @@ func run(ctx context.Context) error {
 		}
 	}
 
-	// errChan will only ever be nil or the sync.Once error from errorgroup
-	return <-errChan
+	return nil
+}
+
+func produceTestJobs(ctx context.Context, jobChan chan<- jobs.Job, numJobs int) {
+	defer close(jobChan)
+
+	for i := 1; i <= numJobs; i++ {
+		var job jobs.Job
+		jobID := uuid.New()
+
+		if i%2 == 0 {
+			job = jobs.JobProcessInt{
+				ID:     jobID,
+				IntVal: i,
+			}
+		} else {
+			job = jobs.JobProcessString{
+				ID:     jobID,
+				StrVal: fmt.Sprintf("i=%d", i),
+			}
+		}
+
+		fmt.Printf("Job Created: %+v\n", job)
+
+		// cancel aware job loading
+		select {
+		case jobChan <- job:
+		case <-ctx.Done():
+			return
+		}
+	}
 }
