@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/google/uuid"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -88,7 +89,7 @@ type PrintStore struct{}
 func (s PrintStore) StoreResult(ctx context.Context, r Result) error {
 	switch r.ResultType() {
 	case ResultTypeInt, ResultTypeStr:
-		fmt.Printf("Job Result: %s\n", r)
+		fmt.Printf("Job Result: %v\n", r)
 	default:
 		return fmt.Errorf("unknown result type")
 	}
@@ -98,9 +99,56 @@ func (s PrintStore) StoreResult(ctx context.Context, r Result) error {
 
 // add NoSQL store later
 
+// worker
+func worker(ctx context.Context, jobChan <-chan Job, resultsChan chan<- Result) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case job, ok := <-jobChan:
+			if !ok {
+				return fmt.Errorf("job chan closed; no more jobs")
+			}
+
+			result, err := job.Process(ctx)
+			if err != nil {
+				return fmt.Errorf("job process error: %w", err)
+			}
+
+			select {
+			case resultsChan <- result:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	}
+
+}
+
 func run(ctx context.Context) error {
 	jobChan := make(chan Job)
 	resultsChan := make(chan Result)
+	numWorkers := 5
+
+	errorGroup, ctx := errgroup.WithContext(ctx)
+
+	// spawn workers with early cancel via errorgroup and context
+	for i := 1; i <= numWorkers; i++ {
+		errorGroup.Go(func() error {
+			return worker(ctx, jobChan, resultsChan)
+		})
+	}
+
+	// coordination routine, ensure results channel closed when jobs done (error group wait group)
+	go func() {
+		defer close(resultsChan)
+		err := errorGroup.Wait()
+		fmt.Println(err)
+	}()
+
+	// job producer
+
+	// results consumer
 
 	return nil
 }
