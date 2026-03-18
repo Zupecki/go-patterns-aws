@@ -2,11 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/google/uuid"
 )
 
 func main() {
@@ -19,7 +20,29 @@ func main() {
 	}
 }
 
+type JobType string
+
+const (
+	JobTypeInt JobType = "int"
+	JobTypeStr JobType = "string"
+)
+
+type Job struct {
+	ID     uuid.UUID
+	Type   JobType
+	IntVal int
+	StrVal string
+}
+
+type Result struct {
+	Type   string // "int" or "string"
+	IntVal int
+	StrVal string
+}
+
 func run(ctx context.Context) error {
-	fmt.Println(ctx.Err())
+	jobChan := make(chan<- Job)
+	resultsChan := make(<-chan Result)
+
 	return nil
 }
