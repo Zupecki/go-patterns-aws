@@ -165,7 +165,6 @@ func run(ctx context.Context) error {
 		for i := 1; i <= numJobs; i++ {
 			var job Job
 			uuid := uuid.New()
-			fmt.Printf("Job Created with id=%s\n", uuid.String())
 
 			if i%2 == 0 {
 				job = JobProcessInt{
@@ -178,6 +177,8 @@ func run(ctx context.Context) error {
 					StrVal: fmt.Sprintf("i=%d", i),
 				}
 			}
+
+			fmt.Printf("Job Created: %+v\n", job)
 
 			// cancel aware job loading
 			select {
