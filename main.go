@@ -7,8 +7,8 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
+	"github.com/Zupecki/go-patterns-aws/jobs"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 )
@@ -23,91 +23,14 @@ func main() {
 	}
 }
 
-// jobs
-type Job interface {
-	Process(ctx context.Context) (Result, error)
-}
-
-type JobProcessString struct {
-	ID     uuid.UUID
-	StrVal string
-}
-
-func (j JobProcessString) Process(ctx context.Context) (Result, error) {
-	select {
-	case <-time.After(5 * time.Second):
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
-
-	result := ResultJobString{
-		ID:     j.ID,
-		StrVal: fmt.Sprintf("String processed: %s", j.StrVal),
-	}
-
-	return result, nil
-}
-
-type JobProcessInt struct {
-	ID     uuid.UUID
-	IntVal int
-}
-
-func (j JobProcessInt) Process(ctx context.Context) (Result, error) {
-	select {
-	case <-time.After(5 * time.Second):
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
-
-	result := ResultJobInt{
-		ID:     j.ID,
-		IntVal: j.IntVal * 2,
-	}
-
-	return result, nil
-}
-
-// results
-type ResultType string
-
-const (
-	ResultTypeInt ResultType = "int"
-	ResultTypeStr ResultType = "string"
-)
-
-type Result interface {
-	ResultType() ResultType
-}
-
-type ResultJobInt struct {
-	ID     uuid.UUID
-	IntVal int
-}
-
-func (r ResultJobInt) ResultType() ResultType { return ResultTypeInt }
-func (r ResultJobInt) String() string {
-	return fmt.Sprintf("id=%s resulttype=%s value=%d", r.ID.String(), r.ResultType(), r.IntVal)
-}
-
-type ResultJobString struct {
-	ID     uuid.UUID
-	StrVal string
-}
-
-func (r ResultJobString) ResultType() ResultType { return ResultTypeStr }
-func (r ResultJobString) String() string {
-	return fmt.Sprintf("id=%s resulttype=%s value=%s", r.ID.String(), r.ResultType(), r.StrVal)
-}
-
 // store
 type ResultStore interface {
-	StoreResult(ctx context.Context, result Result) error
+	StoreResult(ctx context.Context, result jobs.Result) error
 }
 
 type PrintStore struct{}
 
-func (s PrintStore) StoreResult(ctx context.Context, r Result) error {
+func (s PrintStore) StoreResult(ctx context.Context, r jobs.Result) error {
 	fmt.Printf("Job Result: %v\n", r)
 	return nil
 }
@@ -115,7 +38,7 @@ func (s PrintStore) StoreResult(ctx context.Context, r Result) error {
 // add NoSQL store later
 
 // worker
-func worker(ctx context.Context, jobChan <-chan Job, resultsChan chan<- Result, ID int) error {
+func worker(ctx context.Context, jobChan <-chan jobs.Job, resultsChan chan<- jobs.Result, ID int) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -148,8 +71,8 @@ func worker(ctx context.Context, jobChan <-chan Job, resultsChan chan<- Result, 
 }
 
 func run(ctx context.Context) error {
-	jobChan := make(chan Job)
-	resultsChan := make(chan Result)
+	jobChan := make(chan jobs.Job)
+	resultsChan := make(chan jobs.Result)
 	errChan := make(chan error, 1) // buffer with 1, so worker
 	numWorkers := 5
 	numJobs := 10
@@ -178,16 +101,16 @@ func run(ctx context.Context) error {
 		defer close(jobChan)
 
 		for i := 1; i <= numJobs; i++ {
-			var job Job
+			var job jobs.Job
 			jobID := uuid.New()
 
 			if i%2 == 0 {
-				job = JobProcessInt{
+				job = jobs.JobProcessInt{
 					ID:     jobID,
 					IntVal: i,
 				}
 			} else {
-				job = JobProcessString{
+				job = jobs.JobProcessString{
 					ID:     jobID,
 					StrVal: fmt.Sprintf("i=%d", i),
 				}
