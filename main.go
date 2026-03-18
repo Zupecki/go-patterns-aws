@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	"github.com/Zupecki/go-patterns-aws/jobs"
+	"github.com/Zupecki/go-patterns-aws/worker"
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 )
@@ -36,40 +37,6 @@ func (s PrintStore) StoreResult(ctx context.Context, r jobs.Result) error {
 }
 
 // add NoSQL store later
-
-// worker
-func worker(ctx context.Context, jobChan <-chan jobs.Job, resultsChan chan<- jobs.Result, ID int) error {
-	for {
-		select {
-		case <-ctx.Done():
-			fmt.Printf("Worker %d exiting due to early cancel\n", ID)
-			return ctx.Err()
-		case job, ok := <-jobChan:
-			if !ok {
-				fmt.Printf("Worker %d exiting: no more jobs\n", ID)
-				return nil
-			}
-
-			fmt.Printf("Worker %d picked up job\n", ID)
-
-			result, err := job.Process(ctx)
-			if err != nil {
-				return fmt.Errorf("job process error: %w", err)
-			}
-
-			select {
-			case resultsChan <- result:
-			case <-ctx.Done():
-				fmt.Printf("Worker %d exiting due to early cancel\n", ID)
-				return ctx.Err()
-			}
-
-			fmt.Printf("Worker %d finished job\n", ID)
-		}
-	}
-
-}
-
 func run(ctx context.Context) error {
 	jobChan := make(chan jobs.Job)
 	resultsChan := make(chan jobs.Result)
@@ -83,7 +50,7 @@ func run(ctx context.Context) error {
 	for i := 1; i <= numWorkers; i++ {
 		i := i
 		errorGroup.Go(func() error {
-			return worker(ctx, jobChan, resultsChan, i)
+			return worker.Worker(ctx, jobChan, resultsChan, i)
 		})
 	}
 
