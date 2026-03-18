@@ -129,6 +129,7 @@ func run(ctx context.Context) error {
 	jobChan := make(chan Job)
 	resultsChan := make(chan Result)
 	numWorkers := 5
+	numJobs := 10
 
 	errorGroup, ctx := errgroup.WithContext(ctx)
 
@@ -142,11 +143,38 @@ func run(ctx context.Context) error {
 	// coordination routine, ensure results channel closed when jobs done (error group wait group)
 	go func() {
 		defer close(resultsChan)
+
 		err := errorGroup.Wait()
 		fmt.Println(err)
 	}()
 
 	// job producer
+	go func() {
+		defer close(jobChan)
+
+		for i := 1; i <= numJobs; i++ {
+			var job Job
+
+			if i%2 == 0 {
+				job = JobProcessInt{
+					ID:     uuid.New(),
+					IntVal: i,
+				}
+			} else {
+				job = JobProcessString{
+					ID:     uuid.New(),
+					StrVal: fmt.Sprintf("i=%d", i),
+				}
+			}
+
+			// cancel aware job loading
+			select {
+			case jobChan <- job:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
 	// results consumer
 
