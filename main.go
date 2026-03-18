@@ -33,8 +33,11 @@ type JobProcessString struct {
 }
 
 func (j JobProcessString) Process(ctx context.Context) (Result, error) {
-	fmt.Println("PROCESS STRING JOB")
-	return nil, nil
+	result := ResultJobString{
+		ID:     j.ID,
+		StrVal: fmt.Sprintf("String processed: %s", j.StrVal),
+	}
+	return result, nil
 }
 
 type JobProcessInt struct {
@@ -43,8 +46,11 @@ type JobProcessInt struct {
 }
 
 func (j JobProcessInt) Process(ctx context.Context) (Result, error) {
-	fmt.Println("PROCESS INT JOB")
-	return nil, nil
+	result := ResultJobInt{
+		ID:     j.ID,
+		IntVal: j.IntVal * 2,
+	}
+	return result, nil
 }
 
 // results
