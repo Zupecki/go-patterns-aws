@@ -87,7 +87,7 @@ Swap out the fake in-process producer for a real poller:
 
 ---
 
-# Phase 5 — Add SNS → SQS fan-out
+# Phase 5 — Add SNS → SQS fan-out [x]
 
 Introduce AWS event fan-out:
 
@@ -101,7 +101,7 @@ Introduce AWS event fan-out:
 
 ---
 
-# Phase 6 — Add multiple job types
+# Phase 6 — Add multiple job types [x]
 
 Expand the system to handle multiple kinds of work:
 
@@ -113,7 +113,7 @@ Expand the system to handle multiple kinds of work:
 
 ---
 
-# Phase 7 — Split fan-out across multiple queues
+# Phase 7 — Split fan-out across multiple queues - BUMP TO END
 
 Make SNS fan-out more realistic:
 
