@@ -8,15 +8,15 @@ import (
 	"github.com/google/uuid"
 )
 
-type ResultType string
+type JobType string
 
 const (
-	ResultTypeInt    ResultType = "int"
-	ResultTypeString ResultType = "string"
+	JobTypeInt    JobType = "int"
+	JobTypeString JobType = "string"
 )
 
 type Result interface {
-	ResultType() ResultType
+	ResultJobType() JobType
 }
 
 type ResultJobInt struct {
@@ -24,9 +24,9 @@ type ResultJobInt struct {
 	IntVal int       `json:"intVal"`
 }
 
-func (r ResultJobInt) ResultType() ResultType { return ResultTypeInt }
+func (r ResultJobInt) ResultJobType() JobType { return JobTypeInt }
 func (r ResultJobInt) String() string {
-	return fmt.Sprintf("id=%s resulttype=%s value=%d", r.ID.String(), r.ResultType(), r.IntVal)
+	return fmt.Sprintf("id=%s resulttype=%s value=%d", r.ID.String(), r.ResultJobType(), r.IntVal)
 }
 
 type ResultJobString struct {
@@ -34,9 +34,9 @@ type ResultJobString struct {
 	StrVal string    `json:"strVal"`
 }
 
-func (r ResultJobString) ResultType() ResultType { return ResultTypeString }
+func (r ResultJobString) ResultJobType() JobType { return JobTypeString }
 func (r ResultJobString) String() string {
-	return fmt.Sprintf("id=%s resulttype=%s value=%s", r.ID.String(), r.ResultType(), r.StrVal)
+	return fmt.Sprintf("id=%s resulttype=%s value=%s", r.ID.String(), r.ResultJobType(), r.StrVal)
 }
 
 type Job interface {
