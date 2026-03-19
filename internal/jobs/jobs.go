@@ -21,6 +21,7 @@ type Result interface {
 }
 
 type SQSResult struct {
+	MessageID     string
 	Result        Result
 	QueueURL      string
 	ReceiptHandle string
@@ -53,6 +54,7 @@ type Job interface {
 }
 
 type SQSJob struct {
+	MessageID     string
 	Job           Job
 	QueueURL      string
 	ReceiptHandle string

@@ -92,7 +92,7 @@ func resultsConsumer(ctx context.Context, sqsClient *awssqs.Client, store store.
 			}
 
 			// delete message queue item on success
-			err = sqs.SQSDeleteMessage(ctx, sqsClient, sqsResult.QueueURL, sqsResult.ReceiptHandle)
+			err = sqs.SQSDeleteMessage(ctx, sqsClient, sqsResult.QueueURL, sqsResult.ReceiptHandle, sqsResult.MessageID)
 			if err != nil {
 				return err
 			}

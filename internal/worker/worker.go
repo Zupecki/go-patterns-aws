@@ -19,7 +19,7 @@ func Worker(ctx context.Context, jobChan <-chan jobs.SQSJob, resultsChan chan<- 
 				return nil
 			}
 
-			fmt.Printf("Worker %d picked up job: %+v\n", ID, sqsJob.Job)
+			fmt.Printf("Worker %d picked up job: %s\n", ID, sqsJob.Job)
 
 			result, err := sqsJob.Job.Process(ctx)
 			if err != nil {
@@ -27,6 +27,7 @@ func Worker(ctx context.Context, jobChan <-chan jobs.SQSJob, resultsChan chan<- 
 			}
 
 			sqsResult := jobs.SQSResult{
+				MessageID:     sqsJob.MessageID,
 				Result:        result,
 				QueueURL:      sqsJob.QueueURL,
 				ReceiptHandle: sqsJob.ReceiptHandle,

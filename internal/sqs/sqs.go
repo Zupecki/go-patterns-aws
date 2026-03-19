@@ -78,7 +78,7 @@ func SQSPoll(ctx context.Context, sqsClient *awssqs.Client, queueURL string, job
 					return fmt.Errorf("missing receipt handle")
 				}
 
-				sqsJob, err := parseJobQueueMessage(jqm, queueURL, *m.ReceiptHandle)
+				sqsJob, err := parseJobQueueMessage(jqm, queueURL, *m.ReceiptHandle, *m.MessageId)
 				if err != nil {
 					return err
 				}
@@ -94,50 +94,36 @@ func SQSPoll(ctx context.Context, sqsClient *awssqs.Client, queueURL string, job
 	}
 }
 
-func SQSDeleteMessage(ctx context.Context, sqsClient *awssqs.Client, queueURL string, receiptHandle string) error {
-	fmt.Println("Deleting message from queue with receipt handle: ", receiptHandle)
+func SQSDeleteMessage(ctx context.Context, sqsClient *awssqs.Client, queueURL string, receiptHandle string, messageID string) error {
+	fmt.Println("Deleting message from queue with ID: ", messageID)
 
 	sqsParams := awssqs.DeleteMessageInput{
 		QueueUrl:      &queueURL,
 		ReceiptHandle: &receiptHandle,
 	}
 
-	out, err := sqsClient.DeleteMessage(ctx, &sqsParams)
+	_, err := sqsClient.DeleteMessage(ctx, &sqsParams)
 	if err != nil {
 		return err
 	}
 
-	fmt.Println("Message deleted from queue: ", out)
+	fmt.Println("Message deleted from queue")
 	return nil
 }
 
 // helpers
-func parseJobQueueMessage(jqm JobSQSMessage, queueURL string, receiptHandle string) (jobs.SQSJob, error) {
-	// prepare job id; check if empty, else ensure uuid format
-	var jobID uuid.UUID
-	if jqm.IDRaw == "" {
-		jobID = uuid.New()
-	} else {
-		parsedID, err := uuid.Parse(jqm.IDRaw)
-		if err != nil {
-			jobID = uuid.New()
-			fmt.Printf("queue item id (%s) has invalid format... overwriting with valid uuid: %+v\n", jqm.IDRaw, jobID)
-			// log error, ignore or overwrite id (overwriting for demo)
-		} else {
-			jobID = parsedID
-		}
-	}
-
+func parseJobQueueMessage(jqm JobSQSMessage, queueURL string, receiptHandle string, messageID string) (jobs.SQSJob, error) {
+	fmt.Println("Creating job from message id: ", messageID)
 	var job jobs.Job
 	switch jqm.Type {
 	case jobs.JobTypeInt:
 		job = jobs.JobProcessInt{
-			ID:     jobID,
+			ID:     uuid.New(),
 			IntVal: jqm.IntVal,
 		}
 	case jobs.JobTypeString:
 		job = jobs.JobProcessString{
-			ID:     jobID,
+			ID:     uuid.New(),
 			StrVal: jqm.StrVal,
 		}
 	default:
@@ -145,6 +131,7 @@ func parseJobQueueMessage(jqm JobSQSMessage, queueURL string, receiptHandle stri
 	}
 
 	sqsJob := jobs.SQSJob{
+		MessageID:     messageID,
 		Job:           job,
 		QueueURL:      queueURL,
 		ReceiptHandle: receiptHandle,
