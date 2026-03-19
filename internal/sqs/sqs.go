@@ -94,7 +94,7 @@ func SQSPoll(ctx context.Context, sqsClient *awssqs.Client, queueURL string, job
 	}
 }
 
-func SQSDeleteMessage(queueURL string, sqsClient *awssqs.Client, receiptHandle string) error {
+func SQSDeleteMessage(ctx context.Context, sqsClient *awssqs.Client, queueURL string, receiptHandle string) error {
 	fmt.Println("Deleting message from queue with receipt handle: ", receiptHandle)
 
 	return nil

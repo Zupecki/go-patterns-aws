@@ -11,6 +11,7 @@ import (
 	"github.com/Zupecki/go-patterns-aws/internal/sqs"
 	"github.com/Zupecki/go-patterns-aws/internal/store"
 	"github.com/Zupecki/go-patterns-aws/internal/worker"
+	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -59,7 +60,7 @@ func run(ctx context.Context) error {
 
 	// results consumer
 	resultStore := store.PrintStore{}
-	err = resultsConsumer(ctx, resultStore, resultsChan)
+	err = resultsConsumer(ctx, sqsClient, resultStore, resultsChan)
 	if err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func resultsCleanup(errorGroup *errgroup.Group, resultsChan chan<- jobs.SQSResul
 	errChan <- err
 }
 
-func resultsConsumer(ctx context.Context, store store.ResultStore, resultsChan <-chan jobs.SQSResult) error {
+func resultsConsumer(ctx context.Context, sqsClient *awssqs.Client, store store.ResultStore, resultsChan <-chan jobs.SQSResult) error {
 	for {
 		select {
 		case <-ctx.Done():
@@ -92,7 +93,7 @@ func resultsConsumer(ctx context.Context, store store.ResultStore, resultsChan <
 			}
 
 			// delete message queue item on success
-			err = sqs.SQSDeleteMessage(sqsResult.QueueURL, sqsResult.ReceiptHandle)
+			err = sqs.SQSDeleteMessage(ctx, sqsClient, sqsResult.QueueURL, sqsResult.ReceiptHandle)
 			if err != nil {
 				return err
 			}
