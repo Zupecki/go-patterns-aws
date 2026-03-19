@@ -50,7 +50,6 @@ func run(ctx context.Context) error {
 	go resultsCleanup(errorGroup, resultsChan, errChan)
 
 	// job producer
-	//go produceTestJobs(ctx, jobChan, numJobs)
 	go sqs.SQSPoll(
 		ctx,
 		sqsClient,
