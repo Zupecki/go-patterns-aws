@@ -14,6 +14,13 @@ import (
 )
 
 // SQS
+type SNSWrappedMessage struct {
+	Type      string `json:"Type"`
+	MessageID string `json:"MessageId"`
+	TopicArn  string `json:"TopicArn"`
+	Message   string `json:"Message"`
+}
+
 type JobSQSMessage struct {
 	Type   jobs.JobType `json:"type"`
 	IDRaw  string       `json:"id"`
@@ -70,12 +77,29 @@ func SQSPoll(ctx context.Context, sqsClient *awssqs.Client, queueURL string, job
 				}
 
 				var jqm JobSQSMessage
-				if err := json.Unmarshal([]byte(*m.Body), &jqm); err != nil {
+
+				// check if message is wrapped from SNS
+				var wrappedMessage SNSWrappedMessage
+				if err := json.Unmarshal([]byte(*m.Body), &wrappedMessage); err != nil {
 					return err
+				}
+
+				if wrappedMessage.Type == "Notification" && len(wrappedMessage.Message) > 0 {
+					if err := json.Unmarshal([]byte(wrappedMessage.Message), &jqm); err != nil {
+						return err
+					}
+				} else { // if not wrapped, just use message body
+					if err := json.Unmarshal([]byte(*m.Body), &jqm); err != nil {
+						return err
+					}
 				}
 
 				if m.ReceiptHandle == nil {
 					return fmt.Errorf("missing receipt handle")
+				}
+
+				if m.MessageId == nil {
+					return fmt.Errorf("missing message id")
 				}
 
 				sqsJob, err := parseJobQueueMessage(jqm, queueURL, *m.ReceiptHandle, *m.MessageId)
