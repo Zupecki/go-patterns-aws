@@ -20,8 +20,8 @@ type Result interface {
 }
 
 type ResultJobInt struct {
-	ID     uuid.UUID
-	IntVal int
+	ID     uuid.UUID `json:"id"`
+	IntVal int       `json:"intVal"`
 }
 
 func (r ResultJobInt) ResultType() ResultType { return ResultTypeInt }
@@ -30,8 +30,8 @@ func (r ResultJobInt) String() string {
 }
 
 type ResultJobString struct {
-	ID     uuid.UUID
-	StrVal string
+	ID     uuid.UUID `json:"id"`
+	StrVal string    `json:"strVal"`
 }
 
 func (r ResultJobString) ResultType() ResultType { return ResultTypeString }
