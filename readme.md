@@ -60,7 +60,7 @@ Enhance the worker pool with:
 
 ---
 
-# Phase 3 — Add graceful shutdown
+# Phase 3 — Add graceful shutdown [x]
 
 Make the app behave like a real long-running process:
 
@@ -74,7 +74,7 @@ Make the app behave like a real long-running process:
 
 ---
 
-# Phase 4 — Replace local producer with SQS polling
+# Phase 4 — Replace local producer with SQS polling [x]
 
 Swap out the fake in-process producer for a real poller:
 
