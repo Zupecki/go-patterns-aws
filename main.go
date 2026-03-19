@@ -55,7 +55,6 @@ func run(ctx context.Context) error {
 	)
 
 	// results consumer
-	// may want to cancel context if consumer issues, drain workers etc
 	resultStore := store.PrintStore{}
 	err := resultsConsumer(ctx, resultStore, resultsChan)
 	if err != nil {
@@ -75,14 +74,20 @@ func resultsCleanup(errorGroup *errgroup.Group, resultsChan chan<- jobs.SQSResul
 }
 
 func resultsConsumer(ctx context.Context, store store.ResultStore, resultsChan <-chan jobs.SQSResult) error {
-	for sqsResult := range resultsChan {
+	select {
+	case <-ctx.Done():
+	case sqsResult, ok := <-resultsChan:
+		if !ok {
+			return nil
+		}
+
 		err := store.StoreResult(ctx, sqsResult.Result)
 		if err != nil {
 			return err
 		}
-	}
 
-	// delete message queue item on success
+		// delete message queue item on success
+	}
 
 	return nil
 }
