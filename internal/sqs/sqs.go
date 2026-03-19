@@ -9,19 +9,19 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	awssqs "github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/google/uuid"
 )
 
 // SQS
-type JobQueueMessage struct {
+type JobSQSMessage struct {
 	Type   jobs.JobType `json:"type"`
 	IDRaw  string       `json:"id"`
 	IntVal int          `json:"intVal,omitempty"`
 	StrVal string       `json:"strVal,omitempty"`
 }
 
-func PollSQS(ctx context.Context, queueURL string, jobChan chan<- jobs.Job) error {
+func PollSQS(ctx context.Context, queueURL string, jobChan chan<- jobs.SQSJob) error {
 	// create sqs client with AWS SDK
 	cfg, err := config.LoadDefaultConfig(
 		ctx,
@@ -32,12 +32,12 @@ func PollSQS(ctx context.Context, queueURL string, jobChan chan<- jobs.Job) erro
 		return err
 	}
 
-	sqsClient := sqs.NewFromConfig(cfg, func(o *sqs.Options) {
+	sqsClient := awssqs.NewFromConfig(cfg, func(o *awssqs.Options) {
 		o.BaseEndpoint = aws.String("http://localhost:4566")
 	})
 
 	// long poll
-	sqsParams := sqs.ReceiveMessageInput{
+	sqsParams := awssqs.ReceiveMessageInput{
 		QueueUrl:            &queueURL,
 		MaxNumberOfMessages: 10,
 		WaitTimeSeconds:     15,
@@ -49,6 +49,7 @@ func PollSQS(ctx context.Context, queueURL string, jobChan chan<- jobs.Job) erro
 		case <-ctx.Done():
 			return nil
 		default:
+			// poll
 			out, err := sqsClient.ReceiveMessage(ctx, &sqsParams)
 			if err != nil {
 				return err
@@ -58,36 +59,39 @@ func PollSQS(ctx context.Context, queueURL string, jobChan chan<- jobs.Job) erro
 				continue
 			}
 
+			// iterate over messages
 			for _, m := range out.Messages {
 				if m.Body == nil {
 					continue
 				}
 
-				var jqm JobQueueMessage
+				var jqm JobSQSMessage
 				if err := json.Unmarshal([]byte(*m.Body), &jqm); err != nil {
 					return err
 				}
 
-				job, err := parseJobQueueMessage(jqm)
+				if m.ReceiptHandle == nil {
+					return fmt.Errorf("missing receipt handle")
+				}
+
+				sqsJob, err := parseJobQueueMessage(jqm, queueURL, *m.ReceiptHandle)
 				if err != nil {
 					return err
 				}
 
 				// cancel aware job loading
 				select {
-				case jobChan <- job:
+				case jobChan <- sqsJob:
 				case <-ctx.Done():
 					return ctx.Err()
 				}
-
-				// add delete sqs job message once load successful
 			}
 		}
 	}
 }
 
 // helpers
-func parseJobQueueMessage(jqm JobQueueMessage) (jobs.Job, error) {
+func parseJobQueueMessage(jqm JobSQSMessage, queueURL string, receiptHandle string) (jobs.SQSJob, error) {
 	// prepare job id; check if empty, else ensure uuid format
 	var jobID uuid.UUID
 	if jqm.IDRaw == "" {
@@ -116,8 +120,14 @@ func parseJobQueueMessage(jqm JobQueueMessage) (jobs.Job, error) {
 			StrVal: jqm.StrVal,
 		}
 	default:
-		return nil, fmt.Errorf("unsupported queue message type for job type")
+		return jobs.SQSJob{}, fmt.Errorf("unsupported queue message type for job type")
 	}
 
-	return job, nil
+	sqsJob := jobs.SQSJob{
+		Job:           job,
+		QueueURL:      queueURL,
+		ReceiptHandle: receiptHandle,
+	}
+
+	return sqsJob, nil
 }

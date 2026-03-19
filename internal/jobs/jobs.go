@@ -20,6 +20,12 @@ type Result interface {
 	JobType() JobType
 }
 
+type SQSResult struct {
+	Result        Result
+	QueueURL      string
+	ReceiptHandle string
+}
+
 type ResultJobInt struct {
 	ID     uuid.UUID `json:"id"`
 	IntVal int       `json:"intVal"`
@@ -44,6 +50,12 @@ func (r ResultJobString) String() string {
 type Job interface {
 	JobType() JobType
 	Process(ctx context.Context) (Result, error)
+}
+
+type SQSJob struct {
+	Job           Job
+	QueueURL      string
+	ReceiptHandle string
 }
 
 type JobProcessInt struct {

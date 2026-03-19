@@ -11,27 +11,33 @@ import (
 // 	return worker
 // }
 
-func Worker(ctx context.Context, jobChan <-chan jobs.Job, resultsChan chan<- jobs.Result, ID int) error {
+func Worker(ctx context.Context, jobChan <-chan jobs.SQSJob, resultsChan chan<- jobs.SQSResult, ID int) error {
 	for {
 		select {
 		case <-ctx.Done():
 			fmt.Printf("Worker %d exiting due to early cancel\n", ID)
 			return ctx.Err()
-		case job, ok := <-jobChan:
+		case sqsJob, ok := <-jobChan:
 			if !ok {
 				fmt.Printf("Worker %d exiting: no more jobs\n", ID)
 				return nil
 			}
 
-			fmt.Printf("Worker %d picked up job\n", ID)
+			fmt.Printf("Worker %d picked up job: %+v\n", ID, sqsJob.Job)
 
-			result, err := job.Process(ctx)
+			result, err := sqsJob.Job.Process(ctx)
 			if err != nil {
 				return fmt.Errorf("job process error: %w", err)
 			}
 
+			sqsResult := jobs.SQSResult{
+				Result:        result,
+				QueueURL:      sqsJob.QueueURL,
+				ReceiptHandle: sqsJob.ReceiptHandle,
+			}
+
 			select {
-			case resultsChan <- result:
+			case resultsChan <- sqsResult:
 			case <-ctx.Done():
 				fmt.Printf("Worker %d exiting due to early cancel\n", ID)
 				return ctx.Err()

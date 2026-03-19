@@ -27,8 +27,8 @@ func main() {
 }
 
 func run(ctx context.Context) error {
-	jobChan := make(chan jobs.Job)
-	resultsChan := make(chan jobs.Result)
+	jobChan := make(chan jobs.SQSJob)
+	resultsChan := make(chan jobs.SQSResult)
 	errChan := make(chan error, 1) // buffer 1 so cleanup goroutine can send final error without blocking
 	numWorkers := 5
 	//numJobs := 10
@@ -66,7 +66,7 @@ func run(ctx context.Context) error {
 	return <-errChan
 }
 
-func resultsCleanup(errorGroup *errgroup.Group, resultsChan chan<- jobs.Result, errChan chan<- error) {
+func resultsCleanup(errorGroup *errgroup.Group, resultsChan chan<- jobs.SQSResult, errChan chan<- error) {
 	defer close(resultsChan)
 	defer close(errChan)
 
@@ -74,13 +74,15 @@ func resultsCleanup(errorGroup *errgroup.Group, resultsChan chan<- jobs.Result, 
 	errChan <- err
 }
 
-func resultsConsumer(ctx context.Context, store store.ResultStore, resultsChan <-chan jobs.Result) error {
-	for result := range resultsChan {
-		err := store.StoreResult(ctx, result)
+func resultsConsumer(ctx context.Context, store store.ResultStore, resultsChan <-chan jobs.SQSResult) error {
+	for sqsResult := range resultsChan {
+		err := store.StoreResult(ctx, sqsResult.Result)
 		if err != nil {
 			return err
 		}
 	}
+
+	// delete message queue item on success
 
 	return nil
 }
