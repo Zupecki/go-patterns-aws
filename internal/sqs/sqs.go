@@ -21,7 +21,7 @@ type JobSQSMessage struct {
 	StrVal string       `json:"strVal,omitempty"`
 }
 
-func SQSPoll(ctx context.Context, queueURL string, jobChan chan<- jobs.SQSJob) error {
+func NewLocalStackClient(ctx context.Context) (*awssqs.Client, error) {
 	// create sqs client with AWS SDK
 	cfg, err := config.LoadDefaultConfig(
 		ctx,
@@ -29,13 +29,17 @@ func SQSPoll(ctx context.Context, queueURL string, jobChan chan<- jobs.SQSJob) e
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("test", "test", "")),
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	sqsClient := awssqs.NewFromConfig(cfg, func(o *awssqs.Options) {
 		o.BaseEndpoint = aws.String("http://localhost:4566")
 	})
 
+	return sqsClient, nil
+}
+
+func SQSPoll(ctx context.Context, sqsClient *awssqs.Client, queueURL string, jobChan chan<- jobs.SQSJob) error {
 	// long poll
 	sqsParams := awssqs.ReceiveMessageInput{
 		QueueUrl:            &queueURL,
@@ -90,7 +94,7 @@ func SQSPoll(ctx context.Context, queueURL string, jobChan chan<- jobs.SQSJob) e
 	}
 }
 
-func SQSDeleteMessage(queueURL string, receiptHandle string) error {
+func SQSDeleteMessage(queueURL string, sqsClient *awssqs.Client, receiptHandle string) error {
 	fmt.Println("Deleting message from queue with receipt handle: ", receiptHandle)
 
 	return nil

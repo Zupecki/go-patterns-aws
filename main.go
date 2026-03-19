@@ -29,7 +29,11 @@ func run(ctx context.Context) error {
 	resultsChan := make(chan jobs.SQSResult)
 	errChan := make(chan error, 1) // buffer 1 so cleanup goroutine can send final error without blocking
 	numWorkers := 5
-	//numJobs := 10
+
+	sqsClient, err := sqs.NewLocalStackClient(ctx)
+	if err != nil {
+		return err
+	}
 
 	errorGroup, ctx := errgroup.WithContext(ctx)
 
@@ -48,13 +52,14 @@ func run(ctx context.Context) error {
 	//go produceTestJobs(ctx, jobChan, numJobs)
 	go sqs.SQSPoll(
 		ctx,
+		sqsClient,
 		"http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/test-queue",
 		jobChan,
 	)
 
 	// results consumer
 	resultStore := store.PrintStore{}
-	err := resultsConsumer(ctx, resultStore, resultsChan)
+	err = resultsConsumer(ctx, resultStore, resultsChan)
 	if err != nil {
 		return err
 	}
