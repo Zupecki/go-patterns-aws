@@ -97,6 +97,17 @@ func SQSPoll(ctx context.Context, sqsClient *awssqs.Client, queueURL string, job
 func SQSDeleteMessage(ctx context.Context, sqsClient *awssqs.Client, queueURL string, receiptHandle string) error {
 	fmt.Println("Deleting message from queue with receipt handle: ", receiptHandle)
 
+	sqsParams := awssqs.DeleteMessageInput{
+		QueueUrl:      &queueURL,
+		ReceiptHandle: &receiptHandle,
+	}
+
+	out, err := sqsClient.DeleteMessage(ctx, &sqsParams)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println("Message deleted from queue: ", out)
 	return nil
 }
 
