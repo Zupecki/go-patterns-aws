@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -12,7 +11,6 @@ import (
 	"github.com/Zupecki/go-patterns-aws/internal/sqs"
 	"github.com/Zupecki/go-patterns-aws/internal/store"
 	"github.com/Zupecki/go-patterns-aws/internal/worker"
-	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -48,7 +46,7 @@ func run(ctx context.Context) error {
 
 	// job producer
 	//go produceTestJobs(ctx, jobChan, numJobs)
-	go sqs.PollSQS(
+	go sqs.SQSPoll(
 		ctx,
 		"http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/test-queue",
 		jobChan,
@@ -74,50 +72,25 @@ func resultsCleanup(errorGroup *errgroup.Group, resultsChan chan<- jobs.SQSResul
 }
 
 func resultsConsumer(ctx context.Context, store store.ResultStore, resultsChan <-chan jobs.SQSResult) error {
-	select {
-	case <-ctx.Done():
-	case sqsResult, ok := <-resultsChan:
-		if !ok {
-			return nil
-		}
-
-		err := store.StoreResult(ctx, sqsResult.Result)
-		if err != nil {
-			return err
-		}
-
-		// delete message queue item on success
-	}
-
-	return nil
-}
-
-func produceTestJobs(ctx context.Context, jobChan chan<- jobs.Job, numJobs int) {
-	defer close(jobChan)
-
-	for i := 1; i <= numJobs; i++ {
-		var job jobs.Job
-		jobID := uuid.New()
-
-		if i%2 == 0 {
-			job = jobs.JobProcessInt{
-				ID:     jobID,
-				IntVal: i,
-			}
-		} else {
-			job = jobs.JobProcessString{
-				ID:     jobID,
-				StrVal: fmt.Sprintf("i=%d", i),
-			}
-		}
-
-		fmt.Printf("Job Created: %+v\n", job)
-
-		// cancel aware job loading
+	for {
 		select {
-		case jobChan <- job:
 		case <-ctx.Done():
-			return
+			return ctx.Err()
+		case sqsResult, ok := <-resultsChan:
+			if !ok {
+				return nil
+			}
+
+			err := store.StoreResult(ctx, sqsResult.Result)
+			if err != nil {
+				return err
+			}
+
+			// delete message queue item on success
+			err = sqs.SQSDeleteMessage(sqsResult.QueueURL, sqsResult.ReceiptHandle)
+			if err != nil {
+				return err
+			}
 		}
 	}
 }

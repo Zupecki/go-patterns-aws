@@ -21,7 +21,7 @@ type JobSQSMessage struct {
 	StrVal string       `json:"strVal,omitempty"`
 }
 
-func PollSQS(ctx context.Context, queueURL string, jobChan chan<- jobs.SQSJob) error {
+func SQSPoll(ctx context.Context, queueURL string, jobChan chan<- jobs.SQSJob) error {
 	// create sqs client with AWS SDK
 	cfg, err := config.LoadDefaultConfig(
 		ctx,
@@ -88,6 +88,12 @@ func PollSQS(ctx context.Context, queueURL string, jobChan chan<- jobs.SQSJob) e
 			}
 		}
 	}
+}
+
+func SQSDeleteMessage(queueURL string, receiptHandle string) error {
+	fmt.Println("Deleting message from queue with receipt handle: ", receiptHandle)
+
+	return nil
 }
 
 // helpers
