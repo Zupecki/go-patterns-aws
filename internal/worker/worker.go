@@ -7,10 +7,6 @@ import (
 	"github.com/Zupecki/go-patterns-aws/internal/jobs"
 )
 
-// func NewWorker() func(ctx context.Context, jobChan <-chan jobs.Job, resultsChan chan<- jobs.Result, ID int) error {
-// 	return worker
-// }
-
 func Worker(ctx context.Context, jobChan <-chan jobs.SQSJob, resultsChan chan<- jobs.SQSResult, ID int) error {
 	for {
 		select {
