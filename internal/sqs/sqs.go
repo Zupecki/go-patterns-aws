@@ -68,15 +68,10 @@ func PollSQS(ctx context.Context, queueURL string, jobChan chan<- jobs.Job) erro
 					return err
 				}
 
-				fmt.Println("JOB QUEUE MESSAGE: ", jqm)
-
 				job, err := parseJobQueueMessage(jqm)
 				if err != nil {
 					return err
 				}
-
-				// load Job onto jobChan
-				fmt.Println("Job: ", job)
 
 				// cancel aware job loading
 				select {
@@ -101,7 +96,7 @@ func parseJobQueueMessage(jqm JobQueueMessage) (jobs.Job, error) {
 		parsedID, err := uuid.Parse(jqm.IDRaw)
 		if err != nil {
 			jobID = uuid.New()
-			fmt.Printf("Queue item id (%s) has invalid format... overwriting with valid uuid: %+v\n", jqm.IDRaw, jobID)
+			fmt.Printf("queue item id (%s) has invalid format... overwriting with valid uuid: %+v\n", jqm.IDRaw, jobID)
 			// log error, ignore or overwrite id (overwriting for demo)
 		} else {
 			jobID = parsedID
