@@ -126,7 +126,7 @@ Make SNS fan-out more realistic:
 
 ---
 
-# Phase 8 — Persist results to DynamoDB
+# Phase 8 — Persist results to DynamoDB [x]
 
 Replace simple console printing with storage:
 
