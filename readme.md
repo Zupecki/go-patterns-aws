@@ -257,3 +257,6 @@ awslocal dynamodb create-table \
   --billing-mode PAY_PER_REQUEST \
   --region us-east-1
 ```
+```
+awslocal dynamodb list-tables
+```
