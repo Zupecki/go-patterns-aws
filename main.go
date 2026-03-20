@@ -33,6 +33,7 @@ func run(ctx context.Context) error {
 	// move to config loader
 	numWorkers := 5
 	env := "db"
+	tableName := "job_results"
 
 	// sqs
 	sqsClient, err := sqs.NewLocalStackClient(ctx)
@@ -47,7 +48,7 @@ func run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		resultStore = store.NewDynamoStore(dynamoClient)
+		resultStore = store.NewDynamoStore(dynamoClient, tableName)
 	}
 
 	// worker group
