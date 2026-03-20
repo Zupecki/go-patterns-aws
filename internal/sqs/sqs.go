@@ -28,6 +28,7 @@ type JobSQSMessage struct {
 	StrVal string       `json:"strVal,omitempty"`
 }
 
+// NewLocalStackClient hard codes localstack aws config and returns sqs client; update to external config load later
 func NewLocalStackClient(ctx context.Context) (*awssqs.Client, error) {
 	// create sqs client with AWS SDK
 	cfg, err := config.LoadDefaultConfig(

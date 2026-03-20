@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
+// NewLocalStackClient hard codes localstack aws config and returns dynamo client; update to external config load later
 func NewLocalStackClient(ctx context.Context) (*dynamodb.Client, error) {
 	// create dynamo client with AWS SDK
 	cfg, err := config.LoadDefaultConfig(
