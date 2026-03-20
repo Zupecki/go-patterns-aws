@@ -31,7 +31,7 @@ func run(ctx context.Context) error {
 	errChan := make(chan error, 1) // buffer 1 so cleanup goroutine can send final error without blocking
 	numWorkers := 5
 
-	sqsClient, err := sqs.NewLocalStackClient(ctx)
+	sqsClient, err := sqs.NewLocalStackSQSClient(ctx)
 	if err != nil {
 		return err
 	}
