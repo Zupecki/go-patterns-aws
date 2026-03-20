@@ -18,6 +18,7 @@ const (
 // Job Result
 type Result interface {
 	JobType() JobType
+	JobID() uuid.UUID
 }
 
 type SQSResult struct {
@@ -33,6 +34,7 @@ type ResultJobInt struct {
 }
 
 func (r ResultJobInt) JobType() JobType { return JobTypeInt }
+func (r ResultJobInt) JobID() uuid.UUID { return r.ID }
 func (r ResultJobInt) String() string {
 	return fmt.Sprintf("id=%s resulttype=%s value=%d", r.ID.String(), r.JobType(), r.IntVal)
 }
@@ -43,6 +45,7 @@ type ResultJobString struct {
 }
 
 func (r ResultJobString) JobType() JobType { return JobTypeString }
+func (r ResultJobString) JobID() uuid.UUID { return r.ID }
 func (r ResultJobString) String() string {
 	return fmt.Sprintf("id=%s resulttype=%s value=%s", r.ID.String(), r.JobType(), r.StrVal)
 }
@@ -50,6 +53,7 @@ func (r ResultJobString) String() string {
 // Job
 type Job interface {
 	JobType() JobType
+	JobID() uuid.UUID
 	Process(ctx context.Context) (Result, error)
 }
 
@@ -66,6 +70,7 @@ type JobProcessInt struct {
 }
 
 func (j JobProcessInt) JobType() JobType { return JobTypeInt }
+func (j JobProcessInt) JobID() uuid.UUID { return j.ID }
 
 func (j JobProcessInt) Process(ctx context.Context) (Result, error) {
 	select {
@@ -88,6 +93,7 @@ type JobProcessString struct {
 }
 
 func (j JobProcessString) JobType() JobType { return JobTypeString }
+func (j JobProcessString) JobID() uuid.UUID { return j.ID }
 
 func (j JobProcessString) Process(ctx context.Context) (Result, error) {
 	select {
