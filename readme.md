@@ -195,3 +195,65 @@ Do not start with HTTP.
 Do not introduce interfaces too soon.
 
 Start small, get it working, then evolve it.
+
+# Localstack
+AWS CLI wrapper, awslocal, which can be configured to point to local docker env.
+
+## SQS
+```
+awslocal sqs create-queue --queue-name test-queue
+```
+```
+awslocal sqs list-queues
+```
+```
+awslocal sqs send-message \
+  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/test-queue \
+  --message-body '{"type":"int","value":5}'
+```
+```
+awslocal sqs receive-message \
+  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/test-queue \
+  --wait-time-seconds 10
+```
+```
+awslocal sqs delete-message \
+  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/test-queue \
+  --receipt-handle "<HERE>"
+```
+```
+awslocal sqs get-queue-attributes \
+  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/test-queue \
+  --attribute-names QueueArn
+```
+## SNS
+```
+awslocal sns create-topic --name jobs-topic
+```
+```
+awslocal sqs get-queue-attributes \
+  --queue-url http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/test-queue \
+  --attribute-names QueueArn
+```
+```
+awslocal sns subscribe \
+  --topic-arn arn:aws:sns:us-east-1:000000000000:jobs-topic \
+  --protocol sqs \
+  --notification-endpoint arn:aws:sqs:us-east-1:000000000000:test-queue
+```
+```
+awslocal sns publish \
+  --topic-arn arn:aws:sns:us-east-1:000000000000:jobs-topic \
+  --message '{"type":"int","intVal":5}'
+```
+
+## Dynamo
+### Commands
+```
+awslocal dynamodb create-table \
+  --table-name job_results \
+  --key-schema AttributeName=job_id,KeyType=HASH \
+  --attribute-definitions AttributeName=job_id,AttributeType=S \
+  --billing-mode PAY_PER_REQUEST \
+  --region us-east-1
+```
