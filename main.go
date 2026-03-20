@@ -29,13 +29,28 @@ func run(ctx context.Context) error {
 	jobChan := make(chan jobs.SQSJob)
 	resultsChan := make(chan jobs.SQSResult)
 	errChan := make(chan error, 1) // buffer 1 so cleanup goroutine can send final error without blocking
-	numWorkers := 5
 
+	// move to config loader
+	numWorkers := 5
+	env := "db"
+
+	// sqs
 	sqsClient, err := sqs.NewLocalStackClient(ctx)
 	if err != nil {
 		return err
 	}
 
+	// db
+	var resultStore store.ResultStore = store.PrintStore{}
+	if env != "nodb" {
+		dynamoClient, err := store.NewLocalStackClient(ctx)
+		if err != nil {
+			return err
+		}
+		resultStore = store.NewDynamoStore(dynamoClient)
+	}
+
+	// worker group
 	errorGroup, ctx := errgroup.WithContext(ctx)
 
 	// spawn workers with early cancel via errorgroup and context
@@ -58,7 +73,6 @@ func run(ctx context.Context) error {
 	)
 
 	// results consumer
-	resultStore := store.PrintStore{}
 	err = resultsConsumer(ctx, sqsClient, resultStore, resultsChan)
 	if err != nil {
 		return err

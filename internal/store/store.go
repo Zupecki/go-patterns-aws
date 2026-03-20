@@ -44,11 +44,12 @@ type DynamoStore struct {
 	db *dynamodb.Client
 }
 
-func (s DynamoStore) StoreResult(ctx context.Context, r jobs.Result) error {
-	fmt.Printf("Job Result: %v\n", r)
-	return nil
-}
-
 func NewDynamoStore(db *dynamodb.Client) *DynamoStore {
 	return &DynamoStore{db: db}
+}
+
+func (s DynamoStore) StoreResult(ctx context.Context, r jobs.Result) error {
+	fmt.Printf("Job Result: %v\n", r)
+
+	return nil
 }
