@@ -45,11 +45,15 @@ func (s PrintStore) StoreResult(ctx context.Context, r jobs.Result, messageID st
 }
 
 type DynamoStore struct {
-	db *dynamodb.Client
+	db        *dynamodb.Client
+	tableName string
 }
 
-func NewDynamoStore(db *dynamodb.Client) *DynamoStore {
-	return &DynamoStore{db: db}
+func NewDynamoStore(db *dynamodb.Client, tableName string) *DynamoStore {
+	return &DynamoStore{
+		db:        db,
+		tableName: tableName,
+	}
 }
 
 type ResultItem struct {
@@ -80,9 +84,11 @@ func (s *DynamoStore) StoreResult(ctx context.Context, r jobs.Result, messageID 
 	}
 
 	putItemInput := dynamodb.PutItemInput{
-		Item: av,
+		Item:      av,
+		TableName: &s.tableName,
 	}
 
+	fmt.Printf("Storing job result in dynamo db for job id=%s, message id=%s", r.JobID().String(), messageID)
 	_, err = s.db.PutItem(ctx, &putItemInput)
 	if err != nil {
 		return err
