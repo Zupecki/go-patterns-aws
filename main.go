@@ -100,7 +100,7 @@ func resultsConsumer(ctx context.Context, sqsClient *awssqs.Client, store store.
 				return nil
 			}
 
-			err := store.StoreResult(ctx, sqsResult.Result)
+			err := store.StoreResult(ctx, sqsResult.Result, sqsResult.MessageID)
 			if err != nil {
 				return err
 			}
