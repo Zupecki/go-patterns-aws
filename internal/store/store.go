@@ -44,7 +44,7 @@ type DynamoStore struct {
 	db *dynamodb.Client
 }
 
-func (s DynamoStore) StoreResults(ctx context.Context, r jobs.Result) error {
+func (s DynamoStore) StoreResult(ctx context.Context, r jobs.Result) error {
 	fmt.Printf("Job Result: %v\n", r)
 	return nil
 }
